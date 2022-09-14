@@ -17,6 +17,7 @@
 
 import os
 import wx
+from wx.lib import sized_controls
 
 
 # Install a custom displayhook to keep Python from setting the global
@@ -33,8 +34,58 @@ def _display_hook(obj):
 
 
 # Add translation macro to builtin similar to what gettext does.
-##builtins.__dict__['_'] = wx.GetTranslation
 _ = wx.GetTranslation
+
+# ---------------------------------------------------------------------------
+class CustomDialog(sized_controls.SizedDialog):
+
+    def __init__(self, settings, *args, **kwargs):
+        super(CustomDialog, self).__init__(*args, **kwargs)
+        self.settings = settings
+
+        pane = self.GetContentsPane()
+
+        values = [_("Hiragana"), _("Katakana")]
+        self.rbox = wx.RadioBox(pane, label=_("Alphabet"),
+                                          choices=values, style=wx.RA_SPECIFY_COLS)
+        self.rbox.SetSelection(settings["alphabet"])
+
+        self.list = wx.ListCtrl(pane, -1, style=wx.LC_REPORT)
+        headers = ["-", "A / А", "I / И", "U / У", "E / Э", "O / О"]
+        for i, j in enumerate(headers):
+                self.list.InsertColumn(col=i, heading=j, format=wx.LIST_FORMAT_CENTER)
+
+        data = [
+            ["",        "あ / ア", "い / イ", "う / ウ", "え / エ", "お / オ"],
+            ["K- / К-", "か / カ", "き / キ", "く / ク", "け / ケ", "こ / コ"],
+        ]
+
+        for y, x in enumerate(data):
+            index = self.list.InsertItem(y, x[0])
+            for i in range(1, 6):
+                self.list.SetItem(index, i, x[i])
+
+        pane_btns = sized_controls.SizedPanel(pane)
+        pane_btns.SetSizerType('horizontal')
+
+        button_ok = wx.Button(pane_btns, wx.ID_OK, label='OK')
+        button_ok.Bind(wx.EVT_BUTTON, self.on_ok)
+
+        button_ok = wx.Button(pane_btns, wx.ID_CANCEL, label='Cancel')
+        button_ok.Bind(wx.EVT_BUTTON, self.on_cancel)
+
+        self.Fit()
+
+    def on_ok(self, event):
+        self.settings["alphabet"] = self.rbox.GetSelection()
+        self.EndModal(wx.ID_OK)
+
+    def on_cancel(self, event):
+        self.EndModal(wx.ID_CANCEL)
+
+    def get_settings(self):
+        return self.settings
+
 
 # ---------------------------------------------------------------------------
 
@@ -47,7 +98,8 @@ class MainFrame(wx.Frame):
     def __init__(self, *args, **kw):
         # ensure the parent's __init__ is called
         super(MainFrame, self).__init__(*args, **kw)
-        #### wx.Frame.__init__(self, None, title=wx.GetApp().GetAppName())
+
+        self.settings = {"alphabet": 0}
 
         # create a panel in the frame
         pnl = wx.Panel(self)
@@ -77,6 +129,8 @@ class MainFrame(wx.Frame):
         file_menu = wx.Menu()
         next_item = file_menu.Append(-1, _("&Next joke...\tCtrl-N"), _("Next joke"))
         file_menu.AppendSeparator()
+        pref_item = file_menu.Append(wx.ID_PREFERENCES)
+        file_menu.AppendSeparator()
         exit_item = file_menu.Append(wx.ID_EXIT)
 
         help_menu = wx.Menu()
@@ -91,6 +145,7 @@ class MainFrame(wx.Frame):
         # each of the menu items. That means that when that menu item is
         # activated then the associated handler function will be called.
         self.Bind(wx.EVT_MENU, self.on_next_item, next_item)
+        self.Bind(wx.EVT_MENU, self.on_pref_item, pref_item)
         self.Bind(wx.EVT_MENU, self.on_exit_item, exit_item)
         self.Bind(wx.EVT_MENU, self.on_about_item, about_item)
 
@@ -101,6 +156,14 @@ class MainFrame(wx.Frame):
     def on_next_item(self, event):
         """Say hello to the user."""
         wx.MessageBox("Hello again from wxPython")
+
+    def on_pref_item(self, event):
+        """Say hello to the user."""
+        settings_dialog = CustomDialog(self.settings, None, title=_("Preferences"))
+        result = settings_dialog.ShowModal()
+        if result == wx.ID_OK:
+            self.settings = settings_dialog.get_settings()
+        settings_dialog.Destroy()
 
     def on_about_item(self, event):
         """Display an About Dialog"""
@@ -128,6 +191,7 @@ class MyApp(wx.App):
         self.SetTopWindow(frm)
 
         frm.Show()
+
         return True
 
     def init_i18n(self):
