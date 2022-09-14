@@ -35,6 +35,51 @@ class MainFrame(wx.Frame):
         sizer.Add(st, wx.SizerFlags().Border(wx.TOP | wx.LEFT, 25))
         pnl.SetSizer(sizer)
 
+        # create a menu bar
+        self.make_menu_bar()
+
+        # and a status bar
+        self.CreateStatusBar()
+        self.SetStatusText("Welcome to JICHK!")
+
+    def make_menu_bar(self):
+        file_menu = wx.Menu()
+        next_item = file_menu.Append(-1, "&Next joke...\tCtrl-N", "Next joke")
+        file_menu.AppendSeparator()
+        exit_item = file_menu.Append(wx.ID_EXIT)
+
+        help_menu = wx.Menu()
+        about_item = help_menu.Append(wx.ID_ABOUT)
+
+        menu_bar = wx.MenuBar()
+        menu_bar.Append(file_menu, "&File")
+        menu_bar.Append(help_menu, "&Help")
+        self.SetMenuBar(menu_bar)
+
+        # Finally, associate a handler function with the EVT_MENU event for
+        # each of the menu items. That means that when that menu item is
+        # activated then the associated handler function will be called.
+        self.Bind(wx.EVT_MENU, self.on_next_item, next_item)
+        self.Bind(wx.EVT_MENU, self.on_exit_item, exit_item)
+        self.Bind(wx.EVT_MENU, self.on_about_item, about_item)
+
+
+    def on_exit_item(self, event):
+        """Close the frame, terminating the application."""
+        self.Close(True)
+
+
+    def on_next_item(self, event):
+        """Say hello to the user."""
+        wx.MessageBox("Hello again from wxPython")
+
+
+    def on_about_item(self, event):
+        """Display an About Dialog"""
+        wx.MessageBox("Jokes In Crazy Hiragana/Katakana\n\nCopyright (c) 2022, Raimonds Cicans",
+                      "About JICHK",
+                      wx.OK | wx.ICON_INFORMATION | wx.CENTRE)
+
 
 if __name__ == '__main__':
     app = wx.App()
