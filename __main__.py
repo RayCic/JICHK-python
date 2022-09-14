@@ -15,7 +15,28 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import os
 import wx
+
+
+# Install a custom displayhook to keep Python from setting the global
+# _ (underscore) to the value of the last evaluated expression.
+# If we don't do this, our mapping of _ to gettext can get overwritten.
+# This is useful/needed in interactive debugging with PyShell.
+def _display_hook(obj):
+    """
+    Custom display hook to prevent Python stealing '_'.
+    """
+
+    if obj is not None:
+        print(repr(obj))
+
+
+# Add translation macro to builtin similar to what gettext does.
+##builtins.__dict__['_'] = wx.GetTranslation
+_ = wx.GetTranslation
+
+# ---------------------------------------------------------------------------
 
 
 class MainFrame(wx.Frame):
@@ -26,6 +47,7 @@ class MainFrame(wx.Frame):
     def __init__(self, *args, **kw):
         # ensure the parent's __init__ is called
         super(MainFrame, self).__init__(*args, **kw)
+        #### wx.Frame.__init__(self, None, title=wx.GetApp().GetAppName())
 
         # create a panel in the frame
         pnl = wx.Panel(self)
@@ -47,11 +69,13 @@ class MainFrame(wx.Frame):
 
         # and a status bar
         self.CreateStatusBar()
-        self.SetStatusText("Welcome to JICHK!")
+        self.SetStatusText(_("Welcome to JICHK!"))
+
+    # -----------------------------------------------------------------------
 
     def make_menu_bar(self):
         file_menu = wx.Menu()
-        next_item = file_menu.Append(-1, "&Next joke...\tCtrl-N", "Next joke")
+        next_item = file_menu.Append(-1, _("&Next joke...\tCtrl-N"), _("Next joke"))
         file_menu.AppendSeparator()
         exit_item = file_menu.Append(wx.ID_EXIT)
 
@@ -59,8 +83,8 @@ class MainFrame(wx.Frame):
         about_item = help_menu.Append(wx.ID_ABOUT)
 
         menu_bar = wx.MenuBar()
-        menu_bar.Append(file_menu, "&File")
-        menu_bar.Append(help_menu, "&Help")
+        menu_bar.Append(file_menu, _("&File"))
+        menu_bar.Append(help_menu, _("&Help"))
         self.SetMenuBar(menu_bar)
 
         # Finally, associate a handler function with the EVT_MENU event for
@@ -70,26 +94,56 @@ class MainFrame(wx.Frame):
         self.Bind(wx.EVT_MENU, self.on_exit_item, exit_item)
         self.Bind(wx.EVT_MENU, self.on_about_item, about_item)
 
-
     def on_exit_item(self, event):
         """Close the frame, terminating the application."""
         self.Close(True)
-
 
     def on_next_item(self, event):
         """Say hello to the user."""
         wx.MessageBox("Hello again from wxPython")
 
-
     def on_about_item(self, event):
         """Display an About Dialog"""
-        wx.MessageBox("Jokes In Crazy Hiragana/Katakana\n\nCopyright (c) 2022, Raimonds Cicans",
-                      "About JICHK",
+        wx.MessageBox(_("Jokes In Crazy Hiragana/Katakana\n\nCopyright (c) 2022, Raimonds Cicans"),
+                      _("About JICHK"),
                       wx.OK | wx.ICON_INFORMATION | wx.CENTRE)
 
 
+# ---------------------------------------------------------------------------
+
+class MyApp(wx.App):
+    locale = None
+    language = "LANGUAGE_DEFAULT"
+
+    def OnInit(self):
+        # Set Current directory to the one containing this file
+        os.chdir(os.path.dirname(os.path.abspath(__file__)))
+
+        self.SetAppName('JICHK')
+
+        self.init_i18n()
+
+        # Create the main window
+        frm = MainFrame(None, title=_("Jokes In Crazy Hiragana/Katakana"))
+        self.SetTopWindow(frm)
+
+        frm.Show()
+        return True
+
+    def init_i18n(self):
+        """
+        ...
+        """
+
+        # Set locale for wxWidgets.
+        # You would define wx.Locale in your wx.App.OnInit class.
+        # Setup the Locale
+        self.locale = wx.Locale(getattr(wx, self.language))
+        path = os.path.abspath("./locale") + os.path.sep
+        self.locale.AddCatalogLookupPathPrefix(path)
+        self.locale.AddCatalog(self.GetAppName())
+
+
 if __name__ == '__main__':
-    app = wx.App()
-    frm = MainFrame(None, title='Jokes In Crazy Hiragana/Katakana')
-    frm.Show()
+    app = MyApp()
     app.MainLoop()
