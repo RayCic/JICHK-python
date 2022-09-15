@@ -42,7 +42,7 @@ class CustomDialog(sized_controls.SizedDialog):
     def __init__(self, settings, *args, **kwargs):
         super(CustomDialog, self).__init__(*args, **kwargs)
         self.settings = settings
-
+        self.SetClientSize(wx.Size(1000, 700))
         pane = self.GetContentsPane()
 
         values = [_("Hiragana"), _("Katakana")]
@@ -58,6 +58,14 @@ class CustomDialog(sized_controls.SizedDialog):
         data = [
             ["",        "あ / ア", "い / イ", "う / ウ", "え / エ", "お / オ"],
             ["K- / К-", "か / カ", "き / キ", "く / ク", "け / ケ", "こ / コ"],
+            ["S- / С-", "さ / サ", "し / シ", "す / ス", "せ / セ", "そ / ソ"],
+            ["T- / Т-", "た / タ", "ち / チ", "つ / ツ", "て / テ", "と / ト"],
+            ["N- / Н-", "な / ナ", "に / ニ", "ぬ / ヌ", "ね / ネ", "の / ノ"],
+            ["H- / Х-", "は / ハ", "ひ / ヒ", "ふ / フ", "へ / ヘ", "ほ / ホ"],
+            ["M- / М-", "ま / マ", "み / ミ", "む / ム", "め / メ", "も / モ"],
+            ["R- / Р-", "ら / ラ", "り / リ", "る / ル", "れ / レ", "ろ / ロ"],
+            ["W- / В-", "わ / ワ", "",        "",       "",       "を / ヲ"],
+            ["",        "",       "",        "ん / ン", "",       ""      ],
         ]
 
         for y, x in enumerate(data):
