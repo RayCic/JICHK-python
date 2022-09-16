@@ -17,6 +17,7 @@
 
 import os
 import wx
+import re
 from wx.lib import sized_controls
 
 
@@ -67,9 +68,11 @@ class CustomDialog(sized_controls.SizedDialog):
             ["W- / В-", "わ / ワ", "",        "",       "",       "を / ヲ"],
             ["",        "",       "",        "ん / ン", "",       ""      ],
         ]
-
+        self.data = data
         for y, x in enumerate(data):
             index = self.list.InsertItem(y, x[0])
+            if settings["rows"][y] == 1:
+                self.list.Select(y)
             for i in range(1, 6):
                 self.list.SetItem(index, i, x[i])
 
@@ -86,6 +89,8 @@ class CustomDialog(sized_controls.SizedDialog):
 
     def on_ok(self, event):
         self.settings["alphabet"] = self.rbox.GetSelection()
+        for i, j in enumerate(self.data):
+            self.settings["rows"][i] = self.list.IsSelected(i)
         self.EndModal(wx.ID_OK)
 
     def on_cancel(self, event):
@@ -96,6 +101,22 @@ class CustomDialog(sized_controls.SizedDialog):
 
 
 # ---------------------------------------------------------------------------
+# https://stackoverflow.com/questions/6116978/how-to-replace-multiple-substrings-of-a-string
+class StringReplacer:
+
+    def __init__(self, replacements):
+        patterns = sorted(replacements, key=len, reverse=True)
+        print("ZZzz 1> ", replacements)
+        print("ZZzz 2> ", patterns)
+        self.replacements = [replacements[k] for k in patterns]
+        self.pattern = re.compile('|'.join(("({})".format(p) for p in patterns)), re.IGNORECASE)
+        def tr(matcher):
+            index = next((index for index,value in enumerate(matcher.groups()) if value), None)
+            return self.replacements[index]
+        self.tr = tr
+
+    def __call__(self, string):
+        return self.pattern.sub(self.tr, string)
 
 
 class MainFrame(wx.Frame):
@@ -107,7 +128,131 @@ class MainFrame(wx.Frame):
         # ensure the parent's __init__ is called
         super(MainFrame, self).__init__(*args, **kw)
 
-        self.settings = {"alphabet": 0}
+        self.settings = {"alphabet": 0, "rows": {0: 1, 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}}
+
+        # Hiragana dictionary
+        self.hiragana = {
+            # First row
+            0: {
+                "A": "あ",
+                "I": "い",
+                "U": "う",
+                "E": "え",
+                "O": "お",
+
+                "А": "あ",
+                "И": "い",
+                "У": "う",
+                "Э": "え",
+                "О": "お",
+            },
+            # Second row
+            1: {
+                "KA": "か",
+                "KI": "き",
+                "KU": "く",
+                "KE": "け",
+                "KO": "こ",
+
+                "КА": "か",
+                "КИ": "き",
+                "КУ": "く",
+                "КЭ": "け",
+                "КО": "こ",
+            },
+            # Third row
+            2: {
+                "SA": "さ",
+                "SHI": "し",
+                "SU": "す",
+                "SE": "せ",
+                "SO": "そ",
+
+                "СА": "さ",
+                "СИ": "し",
+                "СУ": "す",
+                "СЭ": "せ",
+                "СО": "そ",
+            },
+            # Fourth row
+            3: {
+                "TA": "た",
+                "CHI": "ち",
+                "TSU": "つ",
+                "TE": "て",
+                "TO": "と",
+
+                "ТА": "た",
+                "ТИ": "ち",
+                "ЦУ": "つ",
+                "ТЭ": "て",
+                "ТО": "と",
+            },
+            4: {
+                "NA": "な",
+                "NI": "に",
+                "NU": "ぬ",
+                "NE": "ね",
+                "NO": "の",
+
+                "НА": "な",
+                "НИ": "に",
+                "НУ": "ぬ",
+                "НЭ": "ね",
+                "НО": "の",
+            },
+            5: {
+                "HA": "は",
+                "HI": "ひ",
+                "FU": "ふ",
+                "HE": "へ",
+                "HO": "ほ",
+
+                "ХА": "は",
+                "ХИ": "ひ",
+                "ФУ": "ふ",
+                "ХЭ": "へ",
+                "ХО": "ほ",
+            },
+            6: {
+                "MA": "ま",
+                "MI": "み",
+                "MU": "む",
+                "ME": "め",
+                "MO": "も",
+
+                "МА": "ま",
+                "МИ": "み",
+                "МУ": "む",
+                "МЭ": "め",
+                "МО": "も",
+            },
+            7: {
+                "RA": "ら",
+                "RI": "り",
+                "RU": "る",
+                "RE": "れ",
+                "RO": "ろ",
+
+                "РА": "ら",
+                "РИ": "り",
+                "РУ": "る",
+                "РЭ": "れ",
+                "РО": "ろ",
+            },
+            8: {
+                "WA": "わ",
+                "WO": "を",
+
+                "ВА": "わ",
+                "ВО": "を",
+            },
+            9: {
+                "N": "ん",
+
+                "Н": "ん",
+            },
+        }
 
         # create a panel in the frame
         pnl = wx.Panel(self)
@@ -131,7 +276,22 @@ class MainFrame(wx.Frame):
         self.CreateStatusBar()
         self.SetStatusText(_("Welcome to JICHK!"))
 
+        self.show_text()
+
     # -----------------------------------------------------------------------
+    def show_text(self):
+        rows = self.settings["rows"]
+        data = {}
+        for i in range(0, 9):
+            if 1 or rows[i]:
+                data.update(self.hiragana[i])
+
+        text = """The quick brown fox jumps over the lazy dog
+        Бел снег, да по нём собака бежит, черна земля, да хлеб родит.
+        """
+        replacer = StringReplacer(data)
+        text = replacer(text)
+        print("Text> ", text)
 
     def make_menu_bar(self):
         file_menu = wx.Menu()
