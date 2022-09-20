@@ -16,9 +16,11 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 import os
+
 import wx
-import re
 from wx.lib import sized_controls
+
+import crazy_converter
 
 
 # Install a custom displayhook to keep Python from setting the global
@@ -37,6 +39,7 @@ def _display_hook(obj):
 # Add translation macro to builtin similar to what gettext does.
 _ = wx.GetTranslation
 
+
 # ---------------------------------------------------------------------------
 class CustomDialog(sized_controls.SizedDialog):
 
@@ -48,13 +51,13 @@ class CustomDialog(sized_controls.SizedDialog):
 
         values = [_("Hiragana"), _("Katakana")]
         self.rbox = wx.RadioBox(pane, label=_("Alphabet"),
-                                          choices=values, style=wx.RA_SPECIFY_COLS)
+                                choices=values, style=wx.RA_SPECIFY_COLS)
         self.rbox.SetSelection(settings["alphabet"])
 
         self.list = wx.ListCtrl(pane, -1, style=wx.LC_REPORT)
         headers = ["-", "A / А", "I / И", "U / У", "E / Э", "O / О"]
         for i, j in enumerate(headers):
-                self.list.InsertColumn(col=i, heading=j, format=wx.LIST_FORMAT_CENTER)
+            self.list.InsertColumn(col=i, heading=j, format=wx.LIST_FORMAT_CENTER)
 
         data = [
             ["",        "あ / ア", "い / イ", "う / ウ", "え / エ", "お / オ"],
@@ -65,8 +68,8 @@ class CustomDialog(sized_controls.SizedDialog):
             ["H- / Х-", "は / ハ", "ひ / ヒ", "ふ / フ", "へ / ヘ", "ほ / ホ"],
             ["M- / М-", "ま / マ", "み / ミ", "む / ム", "め / メ", "も / モ"],
             ["R- / Р-", "ら / ラ", "り / リ", "る / ル", "れ / レ", "ろ / ロ"],
-            ["W- / В-", "わ / ワ", "",        "",       "",       "を / ヲ"],
-            ["",        "",       "",        "ん / ン", "",       ""      ],
+            ["W- / В-", "わ / ワ", "",       "",        "",       "を / ヲ"],
+            ["",        "",       "",       "ん / ン",  "",       ""],
         ]
         self.data = data
         for y, x in enumerate(data):
@@ -101,23 +104,6 @@ class CustomDialog(sized_controls.SizedDialog):
 
 
 # ---------------------------------------------------------------------------
-# https://stackoverflow.com/questions/6116978/how-to-replace-multiple-substrings-of-a-string
-class StringReplacer:
-
-    def __init__(self, replacements):
-        patterns = sorted(replacements, key=len, reverse=True)
-        print("ZZzz 1> ", replacements)
-        print("ZZzz 2> ", patterns)
-        self.replacements = [replacements[k] for k in patterns]
-        self.pattern = re.compile('|'.join(("({})".format(p) for p in patterns)), re.IGNORECASE)
-        def tr(matcher):
-            index = next((index for index,value in enumerate(matcher.groups()) if value), None)
-            return self.replacements[index]
-        self.tr = tr
-
-    def __call__(self, string):
-        return self.pattern.sub(self.tr, string)
-
 
 class MainFrame(wx.Frame):
     """
@@ -130,135 +116,18 @@ class MainFrame(wx.Frame):
 
         self.settings = {"alphabet": 0, "rows": {0: 1, 1: 1, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0}}
 
-        # Hiragana dictionary
-        self.hiragana = {
-            # First row
-            0: {
-                "A": "あ",
-                "I": "い",
-                "U": "う",
-                "E": "え",
-                "O": "お",
-
-                "А": "あ",
-                "И": "い",
-                "У": "う",
-                "Э": "え",
-                "О": "お",
-            },
-            # Second row
-            1: {
-                "KA": "か",
-                "KI": "き",
-                "KU": "く",
-                "KE": "け",
-                "KO": "こ",
-
-                "КА": "か",
-                "КИ": "き",
-                "КУ": "く",
-                "КЭ": "け",
-                "КО": "こ",
-            },
-            # Third row
-            2: {
-                "SA": "さ",
-                "SHI": "し",
-                "SU": "す",
-                "SE": "せ",
-                "SO": "そ",
-
-                "СА": "さ",
-                "СИ": "し",
-                "СУ": "す",
-                "СЭ": "せ",
-                "СО": "そ",
-            },
-            # Fourth row
-            3: {
-                "TA": "た",
-                "CHI": "ち",
-                "TSU": "つ",
-                "TE": "て",
-                "TO": "と",
-
-                "ТА": "た",
-                "ТИ": "ち",
-                "ЦУ": "つ",
-                "ТЭ": "て",
-                "ТО": "と",
-            },
-            4: {
-                "NA": "な",
-                "NI": "に",
-                "NU": "ぬ",
-                "NE": "ね",
-                "NO": "の",
-
-                "НА": "な",
-                "НИ": "に",
-                "НУ": "ぬ",
-                "НЭ": "ね",
-                "НО": "の",
-            },
-            5: {
-                "HA": "は",
-                "HI": "ひ",
-                "FU": "ふ",
-                "HE": "へ",
-                "HO": "ほ",
-
-                "ХА": "は",
-                "ХИ": "ひ",
-                "ФУ": "ふ",
-                "ХЭ": "へ",
-                "ХО": "ほ",
-            },
-            6: {
-                "MA": "ま",
-                "MI": "み",
-                "MU": "む",
-                "ME": "め",
-                "MO": "も",
-
-                "МА": "ま",
-                "МИ": "み",
-                "МУ": "む",
-                "МЭ": "め",
-                "МО": "も",
-            },
-            7: {
-                "RA": "ら",
-                "RI": "り",
-                "RU": "る",
-                "RE": "れ",
-                "RO": "ろ",
-
-                "РА": "ら",
-                "РИ": "り",
-                "РУ": "る",
-                "РЭ": "れ",
-                "РО": "ろ",
-            },
-            8: {
-                "WA": "わ",
-                "WO": "を",
-
-                "ВА": "わ",
-                "ВО": "を",
-            },
-            9: {
-                "N": "ん",
-
-                "Н": "ん",
-            },
-        }
 
         # create a panel in the frame
         pnl = wx.Panel(self)
 
         # put some text with a larger bold font on it
-        st = wx.StaticText(pnl, label="Jokes In Crazy Hiragana/Katakana")
+        text = """The quick brown fox jumps over the lazy dog
+        Бел снег, да по нём собака бежит, черна земля, да хлеб родит.
+        """
+        text = crazy_converter.CrazyConverter.convert_text(self.settings, text)
+        st = wx.StaticText(pnl, label=text, style=wx.ALIGN_CENTER)
+        self.st = st
+        ### st = wx.StaticText(pnl, label="Jokes In Crazy Hiragana/Katakana")
         font = st.GetFont()
         font.PointSize += 10
         font = font.Bold()
@@ -276,22 +145,8 @@ class MainFrame(wx.Frame):
         self.CreateStatusBar()
         self.SetStatusText(_("Welcome to JICHK!"))
 
-        self.show_text()
-
     # -----------------------------------------------------------------------
-    def show_text(self):
-        rows = self.settings["rows"]
-        data = {}
-        for i in range(0, 9):
-            if 1 or rows[i]:
-                data.update(self.hiragana[i])
-
-        text = """The quick brown fox jumps over the lazy dog
-        Бел снег, да по нём собака бежит, черна земля, да хлеб родит.
-        """
-        replacer = StringReplacer(data)
-        text = replacer(text)
-        print("Text> ", text)
+    #  def convert_text(self):
 
     def make_menu_bar(self):
         file_menu = wx.Menu()
@@ -331,6 +186,11 @@ class MainFrame(wx.Frame):
         result = settings_dialog.ShowModal()
         if result == wx.ID_OK:
             self.settings = settings_dialog.get_settings()
+            text = """The quick brown fox jumps over the lazy dog
+            Бел снег, да по нём собака бежит, черна земля, да хлеб родит.
+            """
+            text = crazy_converter.CrazyConverter.convert_text(self.settings, text)
+            self.st.SetLabel(text)
         settings_dialog.Destroy()
 
     def on_about_item(self, event):
